@@ -3,10 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>Plataforma Ciberseguridad e IA</title>
+
 <style>
-/* ============================ */
-/* ESTILOS GENERALES */
-/* ============================ */
 body::before { 
     content:"";
     position: fixed;
@@ -14,29 +12,26 @@ body::before {
     left:0;
     width: 100%;
     height: 100%;
-    background:linear-gradient(135deg,rgb(201, 144, 255),rgb(141, 172, 243));
     background: url('FONDO.jpg');
     filter: blur(6px)brightness(0.8);
     transform: scale(1.1);
     z-index:-1;
-
-
-    background-size: cover; /* Ajusta la imagen al tamaño de la pantalla */
+    background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
+
 body{ 
     font-family:'Segoe UI'; 
-    color:rgb(190, 209, 245); /*COLOR DE TEXTO */
-    text-align:center; /*COLOCA EL TEXTO EN EL CENTRO*/
+    color:rgb(190, 209, 245);
+    text-align:center;
 }
 
 .container { 
     max-width:900px; 
     margin:auto; 
     margin-top:20px; 
-    background:rgba(12, 0, 0, 0); 
     backdrop-filter: blur(3px);
     padding:20px; 
     border-radius:20px; 
@@ -60,16 +55,11 @@ button:hover {
 .bar { 
     height:12px; 
     background:#bd66f3; 
-}
-
-iframe { 
-    width:100%; 
-    height:300px; 
-    border-radius:10px; 
+    width:0%;
 }
 
 details { 
-    background:#77cef9; 
+    background:#5c18af; 
     padding:10px; 
     margin:5px 0; 
     border-radius:5px; 
@@ -82,253 +72,28 @@ summary {
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
 <h1>🧠 PRIVACODE</h1>
 
-<!-- Barra de progreso -->
 <div id="progress" class="bar"></div>
 <p>⭐ Puntos: <span id="score">0</span></p>
 
-<!-- Contenedor dinámico -->
 <div id="app"></div>
 </div>
 
 <script>
+
 // ============================
 // ESTADO GLOBAL
 // ============================
-let state = { 
-    user:null,             // Nombre del usuario
-    score:0,               // Puntaje total
-    progress:0,            // Porcentaje de progreso global
-    good:0,                // Contador de buenas decisiones
-    bad:0,                 // Contador de malas decisiones
-    currentQuestion:0,     // Pregunta actual del módulo
-    module:"",             // Módulo activo
-    responses:[],          // Array de respuestas con análisis
-    modulesCompleted:{}    // Registro de módulos completados
-};
+let state;
+const TOTAL_QUESTIONS = 20;
 
 // ============================
-// FUNCIONES DE INTERFAZ
-// ============================
-
-// Actualiza barra de progreso y puntaje
-function update(){ 
-    document.getElementById("progress").style.width = state.progress + "%"; 
-    document.getElementById("score").innerText = state.score; 
-}
-
-// ============================
-// INTRODUCCIÓN
-// ============================
-function intro(){ 
-    document.getElementById("app").innerHTML = `
-        <div style="text-align:center;">
-            <h2>🎬 VIDEO INFORMATIVO</h2>
-            <p>Observa este video sobre inteligencia artificial</p>
-
-            <video controls width="70%" style="max-width:700px;">
-                <source src="video.mp4" type="video/mp4">
-                Tu navegador no soporta el video.
-            </video>
-
-            <br><br>
-            <button onclick="login()">Siguiente</button>
-        </div>
-    `; 
-}
-
-// ============================
-// LOGIN Y REGISTRO
-// ============================
-function login(){ 
-    document.getElementById("app").innerHTML = `
-        <h2>🔐 Crear cuenta</h2>
-        <input id="name" placeholder="Nombre"><br>
-        <input id="email" placeholder="Correo"><br>
-        <input id="pass" type="password" placeholder="Contraseña"><br>
-        <button onclick="register()">Registrarse</button>
-    `; 
-}
-
-// Registro y paso al dashboard
-function register(){ 
-    let n=document.getElementById("name").value, 
-        e=document.getElementById("email").value, 
-        p=document.getElementById("pass").value; 
-    
-    if(!n||!e||!p){ 
-        alert("Completa todos los campos"); 
-        return; 
-    } 
-    state.user=n; 
-    dashboard(); 
-}
-
-// ============================
-// PREGUNTAS POR MÓDULO
-// ============================
-
-// Cada módulo tiene un nombre y 5 preguntas
-const questions = {
-    "m1":["WiFi público",[
-        {q:"Estás en una cafetería y quieres revisar tu correo, ¿qué hacer?", correct:1, options:["Conectarte sin pensar","Usar VPN","Solo páginas seguras"]},
-        {q:"Al pagar con tarjeta en WiFi público, ¿qué hacer?", correct:2, options:["Pagar rápido","Esperar red segura","Usar app oficial del banco"]},
-        {q:"Al descargar un archivo de internet, ¿qué hacer?", correct:1, options:["Descargar sin revisar","Revisar antivirus","Preguntar a alguien"]},
-        {q:"Recibes un mensaje de WiFi gratis, ¿qué hacer?", correct:1, options:["Conectarte de inmediato","Comprobar red auténtica","Ignorarlo"]},
-        {q:"Tu laptop pide actualización mientras estás en café, ¿qué hacer?", correct:1, options:["Ignorar y usar","Actualizar con VPN","Actualizar normalmente"]}
-    ]],
-    "m2":["IA en la información",[
-        {q:"La IA te da un informe rápido, ¿qué hacer?", correct:1, options:["Usarlo tal cual","Verificar fuentes","Solo leer rápido"]},
-        {q:"Un artículo de IA parece convincente, ¿qué hacer?", correct:1, options:["Compartir inmediatamente","Revisar credibilidad","Solo guardarlo"]},
-        {q:"IA genera un consejo de inversión, ¿qué hacer?", correct:1, options:["Seguir al pie de la letra","Investigar antes","Ignorarlo"]},
-        {q:"IA propone un texto para tu trabajo, ¿qué hacer?", correct:1, options:["Copiar y entregar","Reescribir y verificar","Solo leer rápido"]},
-        {q:"IA detecta patrones extraños en datos, ¿qué hacer?", correct:1, options:["Ignorarlo","Analizar profundamente","Marcar para revisar luego"]}
-    ]],
-    "m3":["Prompt detallado",[
-        {q:"Necesitas información precisa, ¿qué hacer?", correct:1, options:["Pregunta vaga","Prompt detallado","Algo intermedio"]},
-        {q:"IA responde muy rápido, ¿qué hacer?", correct:1, options:["Acepto todo","Verifico la respuesta","Solo leo"]},
-        {q:"Quieres resumir un texto, ¿qué hacer?", correct:1, options:["Solo 'resumir'","Detalles claros","Pedir sin contexto"]},
-        {q:"Buscas ideas creativas, ¿qué hacer?", correct:1, options:["Muy general","Detallado y con ejemplos","Solo una palabra"]},
-        {q:"IA genera varias soluciones, ¿qué hacer?", correct:1, options:["Elegir la primera","Analizar y comparar","Ignorar todas"]}
-    ]],
-    "m4":["Ética y IA",[
-        {q:"Usas IA en tarea escolar, ¿qué hacer?", correct:1, options:["No decirlo","Usarla como apoyo","Depende del caso"]},
-        {q:"Compartes contenido de IA en redes, ¿qué hacer?", correct:1, options:["Sin verificar","Dar crédito","Solo compartir parcialmente"]},
-        {q:"IA ayuda a redactar informe, ¿qué hacer?", correct:1, options:["Presentar como propio","Citar IA","Solo leer rápido"]},
-        {q:"Generas código con IA, ¿qué hacer?", correct:1, options:["Copiar sin entender","Entender y modificar","Solo probar"]},
-        {q:"IA sugiere ideas éticas, ¿qué hacer?", correct:1, options:["Ignorarlas","Aplicarlas y reflexionar","Solo mirar"]}
-    ]]
-};
-
-// ============================
-// DASHBOARD PRINCIPAL
-// ============================
-function dashboard(){
-    update();
-    let html=`<h2>👋 Hola ${state.user}</h2>`;
-    // Mostrar botón para cada módulo con su nombre y estado
-    for(let mod in questions){
-        let nombreModulo = questions[mod][0];
-        html+=`<button onclick="startModule('${mod}')">${nombreModulo} ${state.modulesCompleted[mod]?'✅ Completado':'▶ Iniciar'}</button>`;
-    }
-    html+=`<button onclick="final()">🏁 Evaluación final</button>`;
-    document.getElementById("app").innerHTML=html;
-}
-
-// ============================
-// INICIAR MÓDULO
-// ============================
-function startModule(mod){
-    if(state.modulesCompleted[mod]){
-        alert("Este módulo ya fue completado.");
-        return;
-    }
-    state.module=mod;
-    state.currentQuestion=0;
-    nextQuestion();
-}
-
-// ============================
-// FUNCIONES DE PREGUNTAS
-// ============================
-
-// Aleatorizar el orden de las opciones
-function shuffleArray(arr){ 
-    return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); 
-}
-
-// Mostrar siguiente pregunta
-function nextQuestion(){
-    let mod = state.module;
-    let qIndex = state.currentQuestion;
-    let preguntas = questions[mod][1];
-
-    if(qIndex >= preguntas.length){
-        state.progress+=10; // Incrementa progreso general
-        state.modulesCompleted[mod]=true;
-        alert("Módulo completado!");
-        dashboard();
-        return;
-    }
-
-    let qObj = preguntas[qIndex];
-    let shuffled = shuffleArray(qObj.options.map((text,i)=>({text,index:i})));
-    document.getElementById("app").innerHTML=`<h2>${qObj.q}</h2>
-        ${shuffled.map(opt=>`<button onclick="answer(${opt.index}, ${qIndex})">${opt.text}</button>`).join("")}`;
-}
-
-// ============================
-// REGISTRO DE RESPUESTA Y FEEDBACK
-// ============================
-function answer(selectedIndex, qIndex){
-    let mod = state.module;
-    let qObj = questions[mod][1][qIndex];
-    let type = "";
-    let puntos = 0;
-
-    if(selectedIndex === qObj.correct){ 
-        state.score += 20; 
-        state.good++; 
-        type = "good"; 
-        puntos = 20;
-    } else { 
-        state.score -= 20; 
-        state.bad++; 
-        type = "bad"; 
-        puntos = -20;
-    }
-
-    state.responses.push({ module: mod, question: qObj.q, type: type, answerText: qObj.options[qObj.correct] });
-
-    // Feedback inmediato mostrando puntos
-    document.getElementById("app").innerHTML = `
-        <h2>${type === "good" ? "✅ Buena decisión" : "❌ Mala decisión"}</h2>
-        <p>Puntos obtenidos: ${puntos}</p>
-        <p>Puntaje total: ${state.score}</p>
-        <button onclick="nextAfterFeedback()">Continuar</button>
-    `;
-    update();
-}
-
-// Pasar a la siguiente pregunta desde feedback
-function nextAfterFeedback(){
-    state.currentQuestion++;
-    nextQuestion();
-}
-
-// ============================
-// EVALUACIÓN FINAL
-// ============================
-function final(){
-    let nivel="", analisis="";
-    if(state.score>=80){ nivel="🏆 Experto"; analisis="Tomas decisiones críticas y seguras."; }
-    else if(state.score>=40){ nivel="🙂 Intermedio"; analisis="Tienes buenas bases pero cometes errores."; }
-    else { nivel="⚠️ Básico"; analisis="Estás en riesgo digital."; }
-
-    // Analizar respuestas por pregunta
-    let det = state.responses.map(r=>{
-        let exp = r.type=="good" ? "✔ Buena decisión: segura y recomendada." : "❌ Mala decisión: riesgo real o consecuencias negativas.";
-        return `<details><summary><strong>Módulo:</strong> ${r.module} - <strong>Respuesta correcta:</strong> ${r.answerText}</summary>
-        <p><strong>Pregunta:</strong> ${r.question}</p>
-        <p><strong>Análisis:</strong> ${exp}</p></details>`;
-    }).join('');
-
-    document.getElementById("app").innerHTML=`<h2>📊 Evaluación final</h2>
-        <p><strong>Nivel:</strong> ${nivel}</p>
-        <p><strong>Puntos:</strong> ${state.score}</p>
-        <p><strong>Buenas decisiones:</strong> ${state.good}</p>
-        <p><strong>Malas decisiones:</strong> ${state.bad}</p>
-        <h3>🧠 Análisis general:</h3><p>${analisis}</p>
-        <h3>🔎 Análisis por pregunta:</h3>${det}
-        <button onclick="reset()">Reiniciar</button>`;
-}
-
-// ============================
-// REINICIO DE LA PLATAFORMA
+// RESET INICIAL
 // ============================
 function reset(){ 
     state={
@@ -342,14 +107,237 @@ function reset(){
         responses:[],
         modulesCompleted:{}
     }; 
+    update();
     intro(); 
 }
 
+window.onload = reset;
+
 // ============================
-// INICIO AUTOMÁTICO DE LA APP
+// ACTUALIZAR UI
 // ============================
-intro();
+function update(){ 
+    document.getElementById("progress").style.width = state.progress + "%"; 
+    document.getElementById("score").innerText = state.score; 
+}
+
+// ============================
+// INTRO
+// ============================
+function intro(){ 
+    document.getElementById("app").innerHTML = `
+        <h2>🎬 VIDEO INFORMATIVO</h2>
+        <video controls width="70%">
+            <source src="video.mp4" type="video/mp4">
+        </video>
+        <br><br>
+        <button onclick="login()">Siguiente</button>
+    `;
+}
+
+// ============================
+// LOGIN
+// ============================
+function login(){ 
+    document.getElementById("app").innerHTML = `
+        <h2>🔐 Crear cuenta</h2>
+        <input id="name" placeholder="Nombre"><br>
+        <input id="email" placeholder="Correo"><br>
+        <input id="pass" type="password" placeholder="Contraseña"><br>
+        <button onclick="register()">Registrarse</button>
+    `; 
+}
+
+// ============================
+// VALIDACIÓN CORREO
+// ============================
+function emailValido(email){
+    return email.includes("@") && email.includes(".");
+}
+
+// ============================
+// REGISTRO
+// ============================
+function register(){ 
+    let n=document.getElementById("name").value.trim(); 
+    let e=document.getElementById("email").value.trim(); 
+    let p=document.getElementById("pass").value.trim(); 
+    
+    if(!n||!e||!p){ 
+        alert("Completa todos los campos"); 
+        return; 
+    } 
+
+    if(!emailValido(e)){
+        alert("Correo no aceptado");
+        return;
+    }
+
+    state.user=n; 
+    dashboard(); 
+}
+
+// ============================
+// PREGUNTAS
+// ============================
+const questions = {
+    "m1":["Uso de WiFi público",[
+        {q:"Estás en una cafetería con WiFi gratis y quieres revisar tu correo. ¿Qué es lo más seguro?", correct:1, options:["Conectarte sin pensar","Usar una VPN","Entrar a cualquier página"]},
+        {q:"Quieres pagar algo en línea usando WiFi público. ¿Qué deberías hacer?", correct:2, options:["Pagar rápido","Usar cualquier página","Usar la app oficial del banco"]},
+        {q:"Descargas un archivo de internet. ¿Qué es lo correcto?", correct:1, options:["Abrirlo sin revisar","Escanearlo con antivirus","Confiar sin comprobar"]},
+        {q:"Aparece una red llamada 'WiFi Gratis'. ¿Qué haces?", correct:1, options:["Conectarte de inmediato","Verificar que sea una red segura","Usarla sin pensar"]},
+        {q:"Tu computadora pide actualizarse en un lugar público. ¿Qué haces?", correct:1, options:["Ignorar la actualización","Actualizar usando conexión segura","Actualizar sin importar la red"]}
+    ]],
+    "m2":["Uso de IA en información",[
+        {q:"Una IA te da información rápida para una tarea. ¿Qué debes hacer?", correct:1, options:["Usarla sin revisar","Verificar si es correcta","Entregarla directamente"]},
+        {q:"Lees un artículo generado por IA. ¿Qué es lo mejor?", correct:1, options:["Compartirlo de inmediato","Revisar si es confiable","Guardarlo sin leer"]},
+        {q:"Una IA te da consejos de inversión. ¿Qué haces?", correct:1, options:["Seguirlos sin pensar","Investigar antes de actuar","Ignorarlos siempre"]},
+        {q:"Usas IA para hacer un trabajo. ¿Qué es correcto?", correct:1, options:["Copiar y pegar","Revisar y mejorar el contenido","Entregarlo tal cual"]},
+        {q:"La IA detecta algo raro en datos. ¿Qué haces?", correct:1, options:["Ignorarlo","Analizarlo con cuidado","Dejarlo para después"]}
+    ]],
+    "m3":["Uso correcto de prompts",[
+        {q:"Quieres una respuesta precisa de IA. ¿Qué haces?", correct:1, options:["Preguntar algo muy general","Dar instrucciones claras","Escribir poco"]},
+        {q:"La IA responde rápido. ¿Qué haces?", correct:1, options:["Aceptar todo","Verificar la información","No leer"]},
+        {q:"Quieres resumir un texto. ¿Qué haces?", correct:1, options:["Solo decir 'resume'","Dar instrucciones claras","No explicar nada"]},
+        {q:"Buscas ideas creativas. ¿Qué haces?", correct:1, options:["Ser muy general","Dar ejemplos y detalles","Usar una sola palabra"]},
+        {q:"La IA da varias soluciones. ¿Qué haces?", correct:1, options:["Elegir la primera","Comparar opciones","Ignorar todo"]}
+    ]],
+    "m4":["Ética en el uso de IA",[
+        {q:"Usas IA en una tarea escolar. ¿Qué es correcto?", correct:1, options:["Ocultarlo","Usarla como apoyo","Depende"]},
+        {q:"Publicas contenido hecho con IA. ¿Qué debes hacer?", correct:1, options:["No decir nada","Dar crédito","Publicarlo sin revisar"]},
+        {q:"IA te ayuda a escribir un texto. ¿Qué haces?", correct:1, options:["Decir que es tuyo","Revisar y citar","Entregarlo sin cambios"]},
+        {q:"Generas código con IA. ¿Qué haces?", correct:1, options:["Copiar sin entender","Revisar y modificar","Solo ejecutarlo"]},
+        {q:"La IA sugiere ideas éticas. ¿Qué haces?", correct:1, options:["Ignorarlas","Reflexionar y aplicarlas","No hacer caso"]}
+    ]]
+};
+
+// ============================
+// DASHBOARD
+// ============================
+function dashboard(){
+    update();
+    let html=`<h2>👋 Hola ${state.user}</h2>`;
+    for(let mod in questions){
+        let nombreModulo = questions[mod][0];
+        html+=`<button onclick="startModule('${mod}')">${nombreModulo} ${state.modulesCompleted[mod]?'✅ Completado':'▶ Iniciar'}</button>`;
+    }
+    html+=`<button onclick="final()">🏁 Evaluación final</button>`;
+    document.getElementById("app").innerHTML=html;
+}
+
+// ============================
+// MÓDULOS
+// ============================
+function startModule(mod){
+    if(state.modulesCompleted[mod]){
+        alert("Este módulo ya fue completado.");
+        return;
+    }
+    state.module=mod;
+    state.currentQuestion=0;
+    nextQuestion();
+}
+
+function shuffleArray(arr){ 
+    return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); 
+}
+
+// ============================
+// PREGUNTAS ALEATORIAS
+// ============================
+function nextQuestion(){
+    let preguntas = questions[state.module][1];
+
+    if(state.currentQuestion >= preguntas.length){
+        state.modulesCompleted[state.module]=true;
+        alert("Módulo completado!");
+        dashboard();
+        return;
+    }
+
+    let qObj = preguntas[state.currentQuestion];
+
+    let opciones = qObj.options.map((text, i) => ({
+        text: text,
+        isCorrect: i === qObj.correct
+    }));
+
+    let shuffled = shuffleArray(opciones);
+
+    document.getElementById("app").innerHTML = `
+        <h2>${qObj.q}</h2>
+        ${shuffled.map(opt => 
+            `<button onclick="answer(${opt.isCorrect})">${opt.text}</button>`
+        ).join("")}
+    `;
+}
+
+// ============================
+// RESPUESTAS
+// ============================
+function answer(isCorrect){
+    let qObj = questions[state.module][1][state.currentQuestion];
+    let puntos = 0;
+    let type="bad";
+
+    if(isCorrect){ 
+        state.score += 20; 
+        state.good++; 
+        type="good";
+        puntos=20;
+    } else { 
+        state.score -= 20; 
+        state.bad++; 
+        puntos=-20;
+    }
+
+    state.progress += (100 / TOTAL_QUESTIONS);
+
+    state.responses.push({ 
+        module: state.module, 
+        question: qObj.q, 
+        type: type, 
+        answerText: qObj.options[qObj.correct] 
+    });
+
+    document.getElementById("app").innerHTML = `
+        <h2>${type==="good"?"✅ Buena decisión":"❌ Mala decisión"}</h2>
+        <p>Puntos: ${puntos}</p>
+        <button onclick="nextAfterFeedback()">Continuar</button>
+    `;
+
+    update();
+}
+
+function nextAfterFeedback(){
+    state.currentQuestion++;
+    nextQuestion();
+}
+
+// ============================
+// FINAL
+// ============================
+function final(){
+    let nivel = state.score>=80?"🏆 Experto":state.score>=40?"🙂 Intermedio":"⚠️ Básico";
+
+    let det = state.responses.map(r=>`
+        <details>
+        <summary>${r.module} - Correcta: ${r.answerText}</summary>
+        <p>${r.question}</p>
+        </details>`).join('');
+
+    document.getElementById("app").innerHTML=`
+        <h2>📊 Evaluación final</h2>
+        <p>${nivel}</p>
+        <p>Puntos: ${state.score}</p>
+        <p>✔ ${state.good} | ❌ ${state.bad}</p>
+        ${det}
+        <button onclick="dashboard()">⬅ Volver</button>
+        <button onclick="reset()">Reiniciar</button>
+    `;
+}
 
 </script>
+
 </body>
 </html>
